@@ -1,7 +1,15 @@
+;;;;;;;;;;;;;;;;;;;; Checks if a given list has any items. If it does, return true. Else, return false.
+; INPUTS - x: a list
+; OUTPUTS - BOOL: True if length > 0, else false.
 (defun HasIntersection (x)
 	(and x (> (length x) 0))
 )
 
+;;;;;;;;;;;;;;;;;;;; Writes a result to the output file in the correct format.
+; INPUTS - so: a list with two ints representing the station and offset along a centerline.
+;          side: a string, L or R, representing the side of the offset.
+;          elev: an int, representing an elevation.
+;          file: the file to write to
 (defun WriteResult (so side elev file)
 	(write-line
 		(strcat
@@ -13,6 +21,10 @@
 	)
 )
 
+;;;;;;;;;;;;;;;;;;; Converts real-world coordinates to station and offset from a given centerline.
+; INPUTS - clObj: a VLA object polyline
+;          pt: a list with 3 int items, x y and z.
+; OUTPUT - a list with 2 int items, station and offset.
 (defun Point->StationOffset (clObj pt / closest station offset)
 	(setq closest
 		(vlax-curve-getClosestPointTo clObj pt)
@@ -29,6 +41,7 @@
 	(list station offset)
 )
 
+;;;;;;;;;;;;;;;;;; Main command. Runs the program. Call LATERALS in carlson to execute.
 (defun c:LATERALS ()
 	;;;;;;;;;;;;;;;; Load extended AutoLISP Functions
 	(vl-load-com)
