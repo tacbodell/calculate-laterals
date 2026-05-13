@@ -7,50 +7,66 @@
 
 ;;;;;;;;;;;;;;;;;;;; Writes a result to the output file in the correct format.
 ; INPUTS - so: a list with two ints representing the station and offset along a centerline.
-;          side: a string, L or R, representing the side of the offset.
 ;          elev: an int, representing an elevation.
 ;          file: the file to write to
-(defun WriteResult (so side elev file)
+(defun WriteResult (so elev file)
+	(setq station (car so))
+	(setq offset (cadr so))
+	(setq num2 (rem station 100)) ; number after the plus
+	(setq num1 (/ (- station num2) 100)) ; number before the plus
+	(setq num1str (rtos num1 2 0))
+	(setq num2str 
+		(if (< num2 10.0)
+			(strcat "0" (rtos num2 2 2))
+			(rtos num2 2 2)
+		)
+	)
+	(setq offsetStr ; if offset is negative, it's Left. else, right.
+		(if (< offset 0)
+			(strcat "L" (rtos (- offset) 2 3))
+			(strcat "R" (rtos offset 2 3))
+		)
+	)
+	(setq elevStr (rtos elev 2 3))
+
 	(write-line
 		(strcat
-			(rtos (car so) 2 3) ", "
-			side (rtos (cadr so) 2 3) ", "
-			(rtos elev 2 3)
+			num1str "+" num2str " "
+			offsetStr " "
+			elevStr
 		)
 	file
 	)
 )
 
 ;;;;;;;;;;;;;;;;;;; Converts real-world coordinates to station and offset from a given centerline.
-; INPUTS - clObj: a VLA object polyline
+; INPUTS - file: path to a cl file
 ;          pt: a list with 3 int items, x y and z.
-; OUTPUT - a list with 2 int items, station and offset.
-(defun Point->StationOffset (clObj pt / closest station offset)
-	(setq closest
-		(vlax-curve-getClosestPointTo clObj pt)
-	)
-
-	(setq station
-		(vlax-curve-getDistAtPoint clObj closest)
-	)
-
-	(setq offset
-		(distance pt closest)
-	)
-
-	(list station offset)
+; OUTPUT - a list with 2 int items, station and offset to the point from the centerline.
+(defun Point->StationOffset (file pt / stationOffset)
+	(setq stationOffset (cf:road_api "cl_location_at_pt" file pt 0))
+	stationOffset
 )
 
 ;;;;;;;;;;;;;;;;;; Main command. Runs the program. Call LATERALS in carlson to execute.
 (defun c:LATERALS ()
 	;;;;;;;;;;;;;;;; Load extended AutoLISP Functions
 	(vl-load-com)
-	;;;;;;;;;;;;;;;; Load DTM API Functions from Carlson
+	;;;;;;;;;;;;;;;; Load API Functions from Carlson
 	(scload (strcat lspdir$ "tri4"))
+	(scload (strcat lspdir$ "eworks"))
 	
 	;;;;;;;;;;;;;;;; Prompt for user input
 	(setq clEnt (car (entsel "\nSelect road centerline: ")))
 	(setq clObject (vlax-ename->vla-object clEnt))
+	(setq clFile
+		(getfiled
+			"Select Road CL File"
+			""
+			"cl"
+			0
+		)
+	)
 	(setq offsetDistance (getreal "\nEnter lateral offset:"))
 	(setq ss (ssget))
 	(setq tinFile
@@ -96,25 +112,25 @@
 		(if (HasIntersection int1)
 			(progn
 				(setq pt1 (list (nth 0 int1) (nth 1 int1) (nth 2 int1)))
-				(setq so1 (Point->StationOffset clObject pt1))
+				(setq so1 (Point->StationOffset clFile pt1))
 				(setq elev1 (cf:dtm_api "tin_z" pt1))
 				(if (null elev1)	; if no elevation is present, default to zero
 					(setq elev1 0) 
 				)
 
-				(setq results (cons (list so1 "L" elev1) results))
+				(setq results (cons (list so1 elev1) results))
 			)
 		)	
 		(if (HasIntersection int2)
 			(progn
 				(setq pt2 (list (nth 0 int2) (nth 1 int2) (nth 2 int2)))
-				(setq so2 (Point->StationOffset clObject pt2))
+				(setq so2 (Point->StationOffset clFile pt2))
 				(setq elev2 (cf:dtm_api "tin_z" pt2))
 				(if (null elev2)	; if no elevation is present, default to zero
 					(setq elev2 0) 
 				)
 
-				(setq results (cons (list so2 "R" elev2) results))
+				(setq results (cons (list so2 elev2) results))
 			)
 		)		
 
@@ -130,7 +146,7 @@
 
 	;;;;;;;;;;;;;;;;;;;;; Write sorted results to txt file
 	(foreach r results
-		(WriteResult (nth 0 r) (nth 1 r) (nth 2 r) file)
+		(WriteResult (nth 0 r) (nth 1 r) file)
 	)
 	
 	(close file)
