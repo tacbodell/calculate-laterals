@@ -1,3 +1,40 @@
+(defun GetDateTimeString ()
+	(setq dateTime (getvar "DATE"))
+
+	(setq jdate (getvar "DATE"))
+
+	;; Time
+	(setq frac (- jdate (fix jdate)))
+	(setq secs (fix (* frac 86400)))
+	(setq h (/ secs 3600))
+	(setq m (/ (rem secs 3600) 60))
+	(setq s (rem secs 60))
+
+	;; Date - convert Julian Day Number to Gregorian
+	(setq jdn (fix jdate))
+	(setq p (+ jdn 68569))
+	(setq q (/ (* 4 p) 146097))
+	(setq r (- p (/ (+ (* 146097 q) 3) 4)))
+	(setq v (/ (* 4000 (+ r 1)) 1461001))
+	(setq r (- r (+ (/ (* 1461 v) 4) -31)))
+	(setq u (/ (* 80 r) 2447))
+	(setq day   (- r (/ (* 2447 u) 80)))
+	(setq t2    (/ u 11))
+	(setq month (+ u 2 (* -12 t2)))
+	(setq year  (+ (* 100 (- q 49)) v t2))
+
+	(setq dateTime
+  		(strcat
+    		(itoa year) "/"
+    		(if (< month 10) (strcat "0" (itoa month)) (itoa month)) "/"
+    		(if (< day   10) (strcat "0" (itoa day))   (itoa day))   " "
+    		(if (< h 10) (strcat "0" (itoa h)) (itoa h)) ":"
+    		(if (< m 10) (strcat "0" (itoa m)) (itoa m)) ":"
+    		(if (< s 10) (strcat "0" (itoa s)) (itoa s))
+  		)
+	)
+)
+
 ;;;;;;;;;;;;;;;;;;;; Checks if a given list has any items. If it does, return true. Else, return false.
 ; INPUTS - x: a list
 ; OUTPUTS - BOOL: True if length > 0, else false.
@@ -91,6 +128,9 @@
 	;;;;;;;;;;;;;;;; Open output filestream and write header
 	(setq file (open outFile "w"))
 	(write-line "Calculate Lateral Offsets" file)
+	(write-line (strcat "Centerline: " clFile) file)
+	(write-line (strcat "Date/Time: " (GetDateTimeString)) file)
+	(write-line "" file)
 
 	;;;;;;;;;;;;;;;; Load TIN
 	(cf:dtm_api "load_tin" tinFile)	
