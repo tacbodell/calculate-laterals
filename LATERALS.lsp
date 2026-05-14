@@ -8,8 +8,9 @@
 ;;;;;;;;;;;;;;;;;;;; Writes a result to the output file in the correct format.
 ; INPUTS - so: a list with two ints representing the station and offset along a centerline.
 ;          elev: an int, representing an elevation.
+;		   stake: offset distance to stake at
 ;          file: the file to write to
-(defun WriteResult (so elev file)
+(defun WriteResult (so elev stake file)
 	(setq station (car so))
 	(setq offset (cadr so))
 	(setq num2 (rem station 100)) ; number after the plus
@@ -23,8 +24,8 @@
 	)
 	(setq offsetStr ; if offset is negative, it's Left. else, right.
 		(if (< offset 0)
-			(strcat "L" (rtos (- offset) 2 3))
-			(strcat "R" (rtos offset 2 3))
+			(strcat "L" (rtos stake 2 3))
+			(strcat "R" (rtos stake 2 3))
 		)
 	)
 	(setq elevStr (rtos elev 2 3))
@@ -67,7 +68,8 @@
 			0
 		)
 	)
-	(setq offsetDistance (getreal "\nEnter lateral offset:"))
+	(setq detectDistance (getreal "\nEnter offset to detect lateral intersections at:"))
+	(setq stakeDistance (getreal "\nEnter offset to stake laterals at:"))
 	(setq ss (ssget))
 	(setq tinFile
 		(getfiled
@@ -94,8 +96,8 @@
 	(cf:dtm_api "load_tin" tinFile)	
 
 	;;;;;;;;;;;;;;;; Offset CL for intersection detections
-	(setq off1 (vlax-invoke clObject 'Offset offsetDistance))
-	(setq off2 (vlax-invoke clObject 'Offset (- offsetDistance)))
+	(setq off1 (vlax-invoke clObject 'Offset detectDistance))
+	(setq off2 (vlax-invoke clObject 'Offset (- detectDistance)))
 	(setq offsetObject1 (vla-Item off1 0))
 	(setq offsetObject2 (vla-Item off2 0))
 
@@ -146,7 +148,7 @@
 
 	;;;;;;;;;;;;;;;;;;;;; Write sorted results to txt file
 	(foreach r results
-		(WriteResult (nth 0 r) (nth 1 r) file)
+		(WriteResult (nth 0 r) (nth 1 r) stakeDistance file)
 	)
 	
 	(close file)
