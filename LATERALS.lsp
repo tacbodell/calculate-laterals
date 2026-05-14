@@ -105,8 +105,7 @@
 			0
 		)
 	)
-	(setq detectDistance (getreal "\nEnter offset to detect lateral intersections at:"))
-	(setq stakeDistance (getreal "\nEnter offset to stake laterals at:"))
+	(setq stakeDistance (getreal "\nEnter offset to detect laterals at:"))
 	(setq ss (ssget))
 	(setq tinFile
 		(getfiled
@@ -136,8 +135,8 @@
 	(cf:dtm_api "load_tin" tinFile)	
 
 	;;;;;;;;;;;;;;;; Offset CL for intersection detections
-	(setq off1 (vlax-invoke clObject 'Offset detectDistance))
-	(setq off2 (vlax-invoke clObject 'Offset (- detectDistance)))
+	(setq off1 (vlax-invoke clObject 'Offset stakeDistance))
+	(setq off2 (vlax-invoke clObject 'Offset (- stakeDistance)))
 	(setq offsetObject1 (vla-Item off1 0))
 	(setq offsetObject2 (vla-Item off2 0))
 
