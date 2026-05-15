@@ -1,3 +1,115 @@
+;;;;;;;;;;;;;;;;;;;; Draws a polyline on the drawing from a given centerline file.
+; INPUTS - path: a full filepath to the centerline file.
+; OUTPUTS - the drawn centerline as an object.
+(defun drawCenterline (path / file line fields code x y pts currentRadius currentDir centerX centerY)
+  
+  ;;;;;;;;;;;;;;;; Read all points from file
+  (setq file (open path "r"))
+  (setq pts '())
+  (setq currentRadius nil)
+  (setq currentDir nil)
+  (setq centerX nil)
+  (setq centerY nil)
+  
+  (while (setq line (read-line file))
+    (setq fields (str-split line ","))
+    (setq code (nth 2 fields))
+    (setq x    (atof (nth 4 fields)))  ; easting
+    (setq y    (atof (nth 3 fields)))  ; northing
+
+	(cond
+	  ;;;; Curve definition row - store radius and center point, draw arc immediately
+	  ((equal code "R")
+	    (setq currentRadius (atof (nth 1 fields)))
+	    (setq centerX       (atof (nth 4 fields)))
+	    (setq centerY       (atof (nth 3 fields)))
+	  )
+	  ;;;; Terminator row - skip
+	  ((and (equal code "L") (equal x 0.0) (equal y 0.0))
+	    nil
+	  )
+	  ;;;; Normal point row
+	  (T
+	    (setq pts (append pts (list (list code x y currentRadius currentDir centerX centerY))))
+	    ;;;; Reset curve info after PT
+	    (if (equal code "PT")
+	      (progn
+	        (setq currentRadius nil)
+	        (setq currentDir nil)
+	        (setq centerX nil)
+	        (setq centerY nil)
+	      )
+	    )
+	  )
+	)
+  )
+  (close file)
+
+  ;;;;;;;;;;;;;;;; Begin PLINE command with first point
+  (setq firstPt (list (cadr (car pts)) (caddr (car pts)) 0.0))
+  (command "PLINE" firstPt)
+
+  ;;;;;;;;;;;;;;;; Iterate through remaining points
+  (setq i 1)
+  (while (< i (length pts))
+    (setq current (nth i pts))
+    (setq code    (nth 0 current))
+    (setq x       (nth 1 current))
+    (setq y       (nth 2 current))
+    (setq pt      (list x y 0.0))
+
+    (cond
+      ;;;; PC - draw line to PC, then arc using center point and angle from PT entry
+      ((equal code "PC")
+        (command pt)
+        (setq nextPt (nth (1+ i) pts))
+        (setq angle  (nth 3 nextPt))
+        (setq ncx    (nth 5 nextPt))
+        (setq ncy    (nth 6 nextPt))
+        (command "A" "CE" (list ncx ncy 0.0) "A" angle "L")
+      )
+      ;;;; PT - skip, already consumed by PC's arc command
+      ((equal code "PT")
+        nil
+      )
+      ;;;; Straight segment
+      (T
+        (command pt)
+      )
+    )
+    (setq i (1+ i))
+  )
+
+  ;;;;;;;;;;;;;;;; Close out PLINE command
+  (command "")
+
+  ;;;;;;;;;;;;;;;; Return the drawn object
+  (setq clEnt (entlast))
+  (vlax-ename->vla-object clEnt)
+)
+
+;;;;;;;;;;;;;;;;;;;; Splits a string by a delimiter.
+; INPUTS - str: the string to split. delim: the delimiter character.
+; OUTPUTS - a list of strings.
+(defun str-split (str delim / pos result current)
+  (setq result '())
+  (setq current "")
+  (setq pos 0)
+  (while (< pos (strlen str))
+    (setq ch (substr str (1+ pos) 1))
+    (if (equal ch delim)
+      (progn
+        (setq result (append result (list current)))
+        (setq current "")
+      )
+      (setq current (strcat current ch))
+    )
+    (setq pos (1+ pos))
+  )
+  (setq result (append result (list current)))
+  result
+)
+
 (defun GetDateTimeString ()
 	(setq dateTime (getvar "DATE"))
 
@@ -95,8 +207,6 @@
 	(scload (strcat lspdir$ "eworks"))
 	
 	;;;;;;;;;;;;;;;; Prompt for user input
-	(setq clEnt (car (entsel "\nSelect road centerline: ")))
-	(setq clObject (vlax-ename->vla-object clEnt))
 	(setq clFile
 		(getfiled
 			"Select Road CL File"
@@ -105,6 +215,7 @@
 			0
 		)
 	)
+	(setq clObject (drawCenterline clFile))
 	(setq stakeDistance (getreal "\nEnter offset to detect laterals at:"))
 	(setq ss (ssget))
 	(setq tinFile
