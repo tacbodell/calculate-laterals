@@ -301,6 +301,12 @@
 		(WriteResult (nth 0 r) (nth 1 r) stakeDistance file)
 	)
 	
+	(print
+		(strcat
+			"Results written to: " outFile
+		)
+	)
+
 	(close file)
   	(princ)
 )
