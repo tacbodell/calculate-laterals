@@ -1,5 +1,20 @@
-This program is free and open source. You may fork and modify it to your heart's content.
+# Calculate Laterals for Carlson
 
-This is a custom application for Carlson with IntelliCAD 2026. It calculates the station, offset, and finished grade elevation of all laterals at a given offset from a road centerline. It then parses and reorganizes all of the results in a human-readable format that can be quickly imported to many different industry-standard tools for stakeout. This has been used extensively by AlphaTec Surveyors, LTD. in Chesapeake, VA to automate their lateral stakeout workflow and boost profits across the company.
+This program is **free** and **open source**. No licenses apply to this program.
 
-To use this program, clone the repository and load the LATERALS.lsp file into your Carlson application using the APPLOAD command from the command line. Then, use the new custom command LATERALS.
+This is a custom application for Carlson with IntelliCAD 2026. It calculates the station, offset, and finished grade elevation of all laterals at a given offset from a given centerline. It then parses and reorganizes all of the results in a human-readable format that can be quickly imported to many different industry-standard tools for stakeout.
+
+## To load this application:
+In Carlson, use the command ```APPLOAD``` to load custom applications. The "Load Application Files" window will open. Select "Add File". In the bottom-right corner of the file explorer pop-up, open the file extension drop-down menu and select "LISP Application (*.lsp)". Find and select the "LATERALS.lsp" script and click "Open". <br>
+Now, in the "Load Application Files" window, highlight the "LATERALS.lsp" file you added and select "Load". The custom command ```LATERALS``` is now available.
+
+## To use the LATERALS command:
+Before running the command, isolate any layers containing linework for the laterals you want to calculate the location of.
+
+Then, use the command ```LATERALS``` from your command line. First, select the centerline file used to reference for stations and offsets. The centerline will be automatically drawn on the currently selected layer. Then, enter the offset from the selected centerline for detection of laterals. The drawn centerline will eventually be automatically offset that distance in either direction for detecting intersections with lateral linework.
+
+Now, draw a window to select all relevant lateral linework. It is fine to include the reference centerline; it will be automatically excluded by the application.
+
+Then, navigate to and select a reference TIN surface for getting surface elevations.
+
+Finally, navigate to the directory for the report to be written into and give it a file name. The directory the report was written into will be repeated into the command line.
